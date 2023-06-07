@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div class="main">
+        <div class="[main]">
             <div class="header"></div>
             <div class="bg">
                 <div class="textbox">
@@ -29,7 +29,7 @@ export default {
         return {
             cardlist: [{
                 name: "a",
-                path: "b",
+                path: "/con4",
                 img: "https://mundoconectado.com.br/uploads/2022/05/25/25658/cacto.jpg"
             }, {
                 name: "a",
@@ -48,12 +48,10 @@ export default {
 .main {
     width: 100%;
 }
-
 .header {
     height: 5vh;
     background-color: #31475e;
 }
-
 .bg {
     height: 90vh;
     background: url(../assets/img/vue_1200_630.jpg) center;

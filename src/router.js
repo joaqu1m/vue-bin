@@ -9,5 +9,9 @@ export default new VueRouter({
         path: "/",
         name: "home",
         component: () => import("./views/Home.vue")
+    }, {
+        path: "/con4",
+        name: "connect-4",
+        component: () => import("./components/Con4.vue")
     }]
 })
