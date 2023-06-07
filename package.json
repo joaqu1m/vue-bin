@@ -1,0 +1,25 @@
+{
+  "name": "vue-bin",
+  "version": "1.0.0",
+  "author": "joaqu1m",
+  "scripts": {
+    "serve": "vue-cli-service serve --port 3000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joaqu1m/vue-bin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/joaqu1m/vue-bin/issues"
+  },
+  "homepage": "https://github.com/joaqu1m/vue-bin#readme",
+  "dependencies": {
+    "@vue/cli-service": "^5.0.8",
+    "axios": "^1.4.0",
+    "eslint": "^8.42.0",
+    "eslint-plugin-vue": "^9.14.1",
+    "vue": "^2.7.14",
+    "vue-router": "^3.5.4",
+    "vuex": "^3.6.2"
+  }
+}
