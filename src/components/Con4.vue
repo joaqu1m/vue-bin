@@ -124,7 +124,7 @@ export default {
     border-right: calc(((var(--con4-board_tile_size) - var(--con4-board_circle_size)) / 2) + 1px);
     border-color: #003386;
     border-style: solid;
-    background-image: url("../assets/img/tilemask.png");
+    background-image: url("../assets/con4/img/tilemask.png");
     background-size: cover;
 }
 

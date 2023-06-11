@@ -28,13 +28,13 @@ export default {
     data() {
         return {
             cardlist: [{
-                name: "a",
+                name: "connect-4",
                 path: "/con4",
-                img: "https://mundoconectado.com.br/uploads/2022/05/25/25658/cacto.jpg"
+                img: "https://bouncycastlenetwork-res.cloudinary.com/88d5fe1c177000a840ede7a2238cbfa1.jpg"
             }, {
-                name: "a",
-                path: "b",
-                img: "https://mundoconectado.com.br/uploads/2022/05/25/25658/cacto.jpg"
+                name: "fisherman",
+                path: "/fisherman",
+                img: "https://pescadordeportivo.files.wordpress.com/2017/07/pescador-deportivo.png"
             }]
         }
     },
@@ -54,7 +54,7 @@ export default {
 }
 .bg {
     height: 90vh;
-    background: url(../assets/img/vue_1200_630.jpg) center;
+    background: url(../assets/main/img/vue_1200_630.jpg) center;
     background-size: cover;
     display: flex;
     flex-direction: column;
