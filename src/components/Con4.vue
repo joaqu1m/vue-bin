@@ -1,16 +1,17 @@
 <template>
     <div class="page">
         <template v-for="(linha, iLinha) in matrizTiles">
-            <div v-for="(coluna, iColuna) in linha" v-if="coluna !== null" :ref="`peca${iLinha}:${iColuna}`" :key="`${iColuna}${iLinha}`" :style="{
-                marginLeft: `calc(var(--con4-board_tile_size) * ${((Math.floor(linha.length / 2)) - iColuna) * -2})`,
-                marginTop: `calc(var(--con4-board_tr_size) * ${(iLinha - 3.5) * 2})`
-            }" class="pecinha" :class="coluna ? 'vermelha' : 'amarela'"></div>
+            <div v-for="({status}, iColuna) in linha" v-if="status !== null" :ref="`peca${iLinha}:${iColuna}`"
+                :key="`${iLinha}${iColuna}`" :style="{
+                    marginLeft: `calc(var(--con4-board_tile_size) * ${((Math.floor(linha.length / 2)) - iColuna) * -2})`,
+                    marginTop: `calc(var(--con4-board_tr_size) * ${(iLinha - 3.5) * 2})`
+                }" class="pecinha" :class="status ? 'vermelha' : 'amarela'"></div>
         </template>
         <div class="board-tbody">
             <div v-for="(linha, iLinha) in [...Array(matrizTiles.length - 1)]" :key="iLinha" class="board-tr">
-                <div v-for="(coluna, iColuna) in [...Array(matrizTiles[iLinha].length)]" :key="`${iColuna}${iLinha}`"
+                <div v-for="(coluna, iColuna) in [...Array(matrizTiles[iLinha].length)]" :key="`${iLinha}${iColuna}`"
                     :ref="`espaco${iLinha}:${iColuna}`" class="board-tile" @mouseenter="men(iColuna)"
-                    @mouseleave="mle(iLinha+1, iColuna)" @click="cli(iLinha+1, iColuna)">
+                    @mouseleave="mle(iLinha + 1, iColuna)" @click="cli(iLinha + 1, iColuna)">
                     <div class="board-circulo-placeholder"></div>
                 </div>
             </div>
@@ -25,44 +26,34 @@ export default {
     components: {},
     data() {
         return {
-            acaoOcorrendo: false,
-            matrizTiles: [...Array(7)].fill([...Array(7)].fill(null)),
-            matrizTilesUsadas: [...Array(7)].fill([...Array(7)].fill(null))
+            matrizTiles: [...Array(7)].fill([...Array(7)].fill({
+                status: null
+            }))
         }
     },
     methods: {
         men(iColuna) {
-            if (this.acaoOcorrendo) {
-                return
-            }
-            const linha = [...this.matrizTiles[0]]
-            linha[iColuna] = true
-            this.$set(this.matrizTiles, 0, linha)
+            this.matriz[0][0].status = true
         },
         mle(iLinha, iColuna) {
-            if (this.matrizTilesUsadas[iLinha][iColuna] !== null || this.acaoOcorrendo) {
-                return
-            }
             const linha = [...this.matrizTiles[0]]
-            linha[iColuna] = null
+            linha[iColuna].status = null
             this.$set(this.matrizTiles, 0, linha)
         },
         cli(iLinha, iColuna) {
-            this.acaoOcorrendo = true
+            // this.acaoOcorrendo = true
             const linha = [...this.matrizTiles[iLinha]]
-            linha[iColuna] = true
-            this.matrizTilesUsadas[iLinha] = linha
-            const velocidade = 100 * iLinha
-            const pecaAtual = this.$refs[`peca0:${iColuna}`][0].style
-            pecaAtual.transition = `margin-top ${velocidade}ms linear`
-            pecaAtual.marginTop = `calc(var(--con4-board_tr_size) * ${(iLinha - 3.5) * 2})`
-            setTimeout(() => {
-                this.acaoOcorrendo = false
-                pecaAtual.transition = ""
-                this.$set(this.matrizTiles, iLinha, linha)
-                linha[iColuna] = null
-                this.$set(this.matrizTiles, 0, linha)
-            }, velocidade)
+            linha[iColuna].status = true
+            // this.matrizTilesUsadas[iLinha] = linha
+            // const velocidade = 100 * iLinha
+            // const pecaAtual = this.$refs[`peca0:${iColuna}`][0].style
+            // pecaAtual.transition = `margin-top ${velocidade}ms linear`
+            // pecaAtual.marginTop = `calc(var(--con4-board_tr_size) * ${(iLinha - 3.5) * 2})`
+            // setTimeout(() => {
+            //    this.acaoOcorrendo = false
+            // pecaAtual.transition = ""
+            this.$set(this.matrizTiles, iLinha, linha)
+            // }, velocidade)
         }
     },
     computed: {},
