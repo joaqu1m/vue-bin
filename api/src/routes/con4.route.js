@@ -9,10 +9,4 @@ router.get("/", (req, res) => {
     res.send(response.send)
 })
 
-router.post("/", (req, res) => {
-    const response = controller.postMensagem()
-    res.statusCode = response.statusCode
-    res.send(response.send)
-})
-
 module.exports = router

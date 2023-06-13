@@ -1,40 +1,71 @@
+<!--
+    IDEIAS RESTANTES
+    servidores
+    deletar servidores automaticamente
+    multiplayer online
+    convidar por URL no multiplayer online
+    vs bot
+
+    tela de vitoria - adiada por falta de curso
+    modais tela de multiplayer online - adiada por falta de curso
+    desenho do close na landing page - adiada por falta de close
+-->
+
 <template>
     <div class="page">
-        <div class="lobby" v-if="!jogoAtivo">
-            <template v-if="fase === 1">
-                <div class="landing-title">LIGUE-4</div>
+        <div class="lobby" v-if="!interface.jogoAtivo">
+            <template v-if="interface.fase === 1">
+                <div class="landing-title">
+                    <template v-if="lang === 'pt-BR' || lang === 'pt'">LIGUE-4</template>
+                    <template v-else>CONNECT-4</template>
+                </div>
                 <div class="landing-main">
                     <div class="landing-main-half"></div>
                     <div class="landing-main-half">
-                        <button @click="fase = 2" class="landing-main-button">
+                        <button @click="interface.fase = 2" class="landing-main-button">
                             <div class="landing-main-button-symbol"></div>
                         </button>
                     </div>
                 </div>
             </template>
-            <template v-else-if="fase === 2">
-                <div class="landing-title">Escolha um modo de jogo</div>
+            <template v-else-if="interface.fase === 2">
+                <div class="landing-title">
+                    <template v-if="lang === 'pt-BR' || lang === 'pt'">
+                        Escolha um modo de jogo
+                    </template>
+                    <template v-else>
+                        Choose a game mode
+                    </template>
+                </div>
                 <div class="landing-main">
                     <div class="landing-main-only">
                         <div class="landing-main-button-placeholder">
                             <span class="landing-main-button-text">Solo</span>
-                            <button @click="jogoAtivo = true" class="landing-main-button solo"></button>
+                            <button @click="interface.jogoAtivo = true" class="landing-main-button solo"></button>
                         </div>
                         <div class="landing-main-button-placeholder">
                             <span class="landing-main-button-text">Local</span>
-                            <button @click="jogoAtivo = true" class="landing-main-button local"></button>
+                            <button @click="interface.jogoAtivo = true" class="landing-main-button local"></button>
                         </div>
                         <div class="landing-main-button-placeholder">
                             <span class="landing-main-button-text">Online</span>
-                            <button @click="fase = 3" class="landing-main-button online"></button>
+                            <button @click="interface.fase = 3" class="landing-main-button online"></button>
                         </div>
                     </div>
                 </div>
             </template>
-            <template v-else-if="fase === 3">
+            <template v-else-if="interface.fase === 3">
+                <input type="text" placeholder="Nickname" v-model="dadosUsuario.nome">
+                <button @click="interface.fase = 4">pronto</button>
                 <button @click="testeReq">testeReq</button>
-                <button @click="testeReqCriar">testeReqCriar</button>
                 <button @click="testeConexaoSocket">testeConexaoSocket</button>
+            </template>
+            <template v-else-if="interface.fase === 4">
+                serverlist
+                <h3>criar servidor</h3>
+                <ul>
+                    <li v-for="(servidor, i) in servidores" :key=i>{{ servidor }}</li>
+                </ul>
             </template>
         </div>
         <div class="board-placeholder" v-else>
@@ -48,8 +79,8 @@
             <div class="board-tbody">
                 <div v-for="(linha, iLinha) in [...Array(matrizTiles.length - 1)]" :key="iLinha" class="board-tr">
                     <div v-for="(coluna, iColuna) in [...Array(matrizTiles[iLinha].length)]" :key="`${iLinha}${iColuna}`"
-                        :ref="`espaco${iLinha}:${iColuna}`" class="board-tile" @mouseenter="men(iColuna)"
-                        @mouseleave="mle(iLinha + 1, iColuna)" @click="cli(iLinha + 1, iColuna)">
+                        :ref="`espaco${iLinha}:${iColuna}`" class="board-tile" @mouseenter="men(false, iColuna)"
+                        @mouseleave="mle(iLinha + 1, iColuna)" @click="cli(false, iLinha + 1, iColuna)">
                         <div class="board-circulo-placeholder"></div>
                     </div>
                 </div>
@@ -60,7 +91,6 @@
 
 <script>
 import axios from "../api/AxiosConfig"
-import io from "socket.io-client"
 
 export default {
     name: "Con4",
@@ -68,15 +98,20 @@ export default {
     components: {},
     data() {
         return {
-            socket: io("http://localhost:3001"),
-            jogoAtivo: false,
-            fase: 1,
-            // variavel provisoria apenas para teste
-            alternarTime: 1,
-
-            ultimaPecaSelecionada: null,
-            movimentacaoOcorrendo: false,
-            matrizTiles: [[
+            dadosUsuario: {
+                nome: "",
+            },
+            interface: {
+                jogoAtivo: false,
+                fase: 1,
+                servidores: [],
+            },
+            game: {
+                alternarTime: 1,
+                ultimaPecaSelecionada: null,
+                movimentacaoOcorrendo: false,
+            },
+            matrizTiles: [
                 // Status
                 // null: peça não está na posição nem em movimento
                 // 1: peça está designada temporariamente à casa
@@ -86,88 +121,42 @@ export default {
                 // null: peça ainda não foi designada a um time
                 // 1: peça é do time vermelho
                 // 2: peça é do time amarelo
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null }
-                ], [
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null }
-                ], [
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null }
-                ], [
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null }
-                ], [
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null }
-                ], [
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null }
-                ], [
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null },
-                    { status: null, time: null }
-            ]]
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }]
+            ]
         }
     },
     methods: {
-        men(iColuna) {
-            this.ultimaPecaSelecionada = { iLinha: 0, iColuna: iColuna }
-            if (this.movimentacaoOcorrendo) return
+        men(outcall, iColuna) {
+
+            if (!outcall) this.game.ultimaPecaSelecionada = { iLinha: 0, iColuna: iColuna }
+            
+            if (this.game.movimentacaoOcorrendo) return
 
             const linha = [...this.matrizTiles[0]]
             linha[iColuna].status = 1
-            linha[iColuna].time = this.alternarTime
+            linha[iColuna].time = this.game.alternarTime
             this.$set(this.matrizTiles, 0, linha)
         },
         mle(iLinha, iColuna) {
-            this.ultimaPecaSelecionada = null
-            if (this.movimentacaoOcorrendo) return
+            this.game.ultimaPecaSelecionada = null
+            if (this.game.movimentacaoOcorrendo) return
 
             const linha = [...this.matrizTiles[0]]
-
+            
             if (linha[iColuna].status === 1) {
                 linha[iColuna].status = null
                 this.$set(this.matrizTiles, 0, linha)
             }
         },
-        cli(iLinha, iColuna) {
-            if (this.movimentacaoOcorrendo) return
-            this.movimentacaoOcorrendo = true
+        cli(outcall, iLinha, iColuna) {
+            if (this.game.movimentacaoOcorrendo) return
+            this.game.movimentacaoOcorrendo = true
 
             let linha = null
             // Checando onde a peca vai cair
@@ -179,10 +168,10 @@ export default {
                 }
             }
 
-            if (!linha) { this.movimentacaoOcorrendo = false; return }
+            if (!linha) { this.game.movimentacaoOcorrendo = false; return }
 
             linha[iColuna].status = 3
-            linha[iColuna].time = this.alternarTime
+            linha[iColuna].time = this.game.alternarTime
             this.$set(this.matrizTiles, iLinha, linha)
 
             const velocidade = 100 * iLinha
@@ -193,7 +182,7 @@ export default {
             setTimeout(() => {
                 pecaAtual.transition = ""
                 
-                this.alternarTime = this.alternarTime === 1 ? 2 : 1
+                this.game.alternarTime = this.game.alternarTime === 1 ? 2 : 1
 
                 const linha2 = [...this.matrizTiles[0]]
                 linha2[iColuna].status = null
@@ -316,36 +305,25 @@ export default {
                 }
 
                 if (direcoesGanhadoras.length === 0) {
-                    console.log("perdeu")
-                } else {
-                    console.log("ganhou")
-                    console.log(direcoesGanhadoras)
-                }
-
-                if (direcoesGanhadoras.length === 0) {
                     setTimeout(() => {
-                        if (this.ultimaPecaSelecionada !== null) {
-                            const linha = [...this.matrizTiles[this.ultimaPecaSelecionada.iLinha]]
-                            linha[this.ultimaPecaSelecionada.iColuna].status = 1
-                            linha[this.ultimaPecaSelecionada.iColuna].time = this.alternarTime
+                        if (this.game.ultimaPecaSelecionada !== null) {
+                            const linha = [...this.matrizTiles[this.game.ultimaPecaSelecionada.iLinha]]
+                            linha[this.game.ultimaPecaSelecionada.iColuna].status = 1
+                            linha[this.game.ultimaPecaSelecionada.iColuna].time = this.game.alternarTime
     
                             this.$set(this.matrizTiles, 0, linha)
                         }
-                        this.movimentacaoOcorrendo = false
-                    }, 100)
+                        this.game.movimentacaoOcorrendo = false
+                    }, 300)
                 } else {
                     alert("VITORIA!!!!!!!!!!!!!!!!!")
+                    window.location.reload()
                 }
 
             }, velocidade)
         },
         testeReq() {
             axios.get("/con4")
-            .then(console.log)
-            .catch(console.log)
-        },
-        testeReqCriar() {
-            axios.post("/con4")
             .then(console.log)
             .catch(console.log)
         },
@@ -356,13 +334,34 @@ export default {
                 numeroDaSorte: Math.random(),
                 data: new Date()
             })
+        },
+        testeFuncionalidade(e) {
+            if (e.keyCode !== 84) return
+
+            // TODO
+            //this.mle(this.ultimaPecaSelecionada.iLinha, this.ultimaPecaSelecionada.iColuna)
+            this.movimentacaoOcorrendo = true
+            this.men(true, 2)
+            setTimeout(() => {
+                this.cli(true, 2, 2)
+            }, 1)
         }
     },
-    computed: {},
+    computed: {
+        socket() {
+            return this.$store.state.socket
+        },
+        lang() {
+            return navigator.language || navigator.userLanguage
+        }
+    },
     watch: {},
     mounted() {
         // Quando recebe teste, dá console.log
         this.socket.on("con4:TESTE", console.log)
+    },
+    created() {
+        window.addEventListener("keydown", this.testeFuncionalidade)
     }
 }
 </script>
