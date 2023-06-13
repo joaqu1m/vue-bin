@@ -1,19 +1,18 @@
 const express = require("express")
 const router = express.Router()
 
-const db = require("../models/con4.model")
-
-const perfis = db.perfis
+const controller = require("../controllers/con4.controller")
 
 router.get("/", (req, res) => {
-    res.statusCode = 200
-    res.send(perfis)
+    const response = controller.getMensagens()
+    res.statusCode = response.statusCode
+    res.send(response.send)
 })
 
 router.post("/", (req, res) => {
-    res.statusCode = 201
-    perfis.push("perfil"+(perfis.length+1))
-    res.send("Perfil criado com sucesso!")
+    const response = controller.postMensagem()
+    res.statusCode = response.statusCode
+    res.send(response.send)
 })
 
 module.exports = router

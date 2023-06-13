@@ -12,10 +12,10 @@ export default new VueRouter({
     }, {
         path: "/con4",
         name: "connect-4",
-        component: () => import("./components/Con4.vue")
+        component: () => import("./views/Con4.vue")
     }, {
         path: "/fisherman",
         name: "fisherman",
-        component: () => import("./components/Fisherman.vue")
+        component: () => import("./views/Fisherman.vue")
     }]
 })

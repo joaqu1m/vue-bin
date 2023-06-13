@@ -34,6 +34,7 @@
             <template v-else-if="fase === 3">
                 <button @click="testeReq">testeReq</button>
                 <button @click="testeReqCriar">testeReqCriar</button>
+                <button @click="testeConexaoSocket">testeConexaoSocket</button>
             </template>
         </div>
         <div class="board-placeholder" v-else>
@@ -59,6 +60,7 @@
 
 <script>
 import axios from "../api/AxiosConfig"
+import io from "socket.io-client"
 
 export default {
     name: "Con4",
@@ -66,6 +68,7 @@ export default {
     components: {},
     data() {
         return {
+            socket: io("http://localhost:3001"),
             jogoAtivo: false,
             fase: 1,
             // variavel provisoria apenas para teste
@@ -345,10 +348,22 @@ export default {
             axios.post("/con4")
             .then(console.log)
             .catch(console.log)
+        },
+        testeConexaoSocket() {
+            // Envia mensagem de teste ao backend
+            this.socket.emit("con4:ENVIAR_TESTE", {
+                nome: "Teste",
+                numeroDaSorte: Math.random(),
+                data: new Date()
+            })
         }
     },
     computed: {},
-    watch: {}
+    watch: {},
+    mounted() {
+        // Quando recebe teste, dá console.log
+        this.socket.on("con4:TESTE", console.log)
+    }
 }
 </script>
 
