@@ -26,10 +26,14 @@
                         </div>
                         <div class="landing-main-button-placeholder">
                             <span class="landing-main-button-text">Online</span>
-                            <button @click="jogoAtivo = true" class="landing-main-button online"></button>
+                            <button @click="fase = 3" class="landing-main-button online"></button>
                         </div>
                     </div>
                 </div>
+            </template>
+            <template v-else-if="fase === 3">
+                <button @click="testeReq">testeReq</button>
+                <button @click="testeReqCriar">testeReqCriar</button>
             </template>
         </div>
         <div class="board-placeholder" v-else>
@@ -54,6 +58,8 @@
 </template>
 
 <script>
+import axios from "../api/AxiosConfig"
+
 export default {
     name: "Con4",
     props: [],
@@ -329,6 +335,16 @@ export default {
                 }
 
             }, velocidade)
+        },
+        testeReq() {
+            axios.get("/con4")
+            .then(console.log)
+            .catch(console.log)
+        },
+        testeReqCriar() {
+            axios.post("/con4")
+            .then(console.log)
+            .catch(console.log)
         }
     },
     computed: {},

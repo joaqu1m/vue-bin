@@ -1,1 +1,1 @@
-# npm install && npm run serve
+# Vue.js 2 mini-projects bin
