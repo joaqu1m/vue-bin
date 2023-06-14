@@ -5,6 +5,9 @@
     multiplayer online
     convidar por URL no multiplayer online
     vs bot
+    interface do jogo melhorada
+
+    manual de ligue-4
 
     tela de vitoria - adiada por falta de curso
     modais tela de multiplayer online - adiada por falta de curso
