@@ -3,12 +3,10 @@ const controller = require("../controllers/con4.controller")
 module.exports = (io, socket, userId) => {
     socket.on("disconnect", () => {
         const deletedServers = controller.leaveServer(userId)
-        io.emit("con4:SERVER_DELETED", deletedServers.map(sv => sv.server.id))
+        if (deletedServers.length > 0) io.emit("con4:SERVER_DELETED", deletedServers.map(sv => sv.server.id))
     })
     socket.on("con4:CREATE_SERVER", payload => {
         const sv = controller.createServer(payload.serverName, payload.maxPlayers)
-        
-        io.emit("con4:CREATE_SERVER:RESPONSE", sv.server.id)
         
         io.emit("con4:SERVER_CREATED", {
             serverId: sv.server.id,

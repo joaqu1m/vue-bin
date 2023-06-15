@@ -63,7 +63,7 @@
                 </div>
             </template>
             <template v-else-if="interface.fase === 3">
-                <input @keydown.enter="login" type="text" placeholder="Nickname" v-model="dadosUsuario.nome">
+                <input @keydown.enter="login" type="text" placeholder="Nickname" v-model="dadosUsuario.userName">
             </template>
             <template v-else-if="interface.fase === 4">
                 <template v-if="interface.jogadoresConectados.length === 0">
@@ -96,7 +96,7 @@
                 <div v-for="(linha, iLinha) in [...Array(matrizTiles.length - 1)]" :key="iLinha" class="board-tr">
                     <div v-for="(coluna, iColuna) in [...Array(matrizTiles[iLinha].length)]" :key="`${iLinha}${iColuna}`"
                         :ref="`espaco${iLinha}:${iColuna}`" class="board-tile" @mouseenter="men(false, iColuna)"
-                        @mouseleave="mle(iLinha + 1, iColuna)" @click="cli(false, iLinha + 1, iColuna)">
+                        @mouseleave="mle(false, iLinha + 1, iColuna)" @click="cli(false, iLinha + 1, iColuna)">
                         <div class="board-circulo-placeholder"></div>
                     </div>
                 </div>
@@ -116,7 +116,11 @@ export default {
         return {
             dadosUsuario: {
                 userId: null,
-                nome: ""
+                userName: "",
+                serverId: null,
+                serverName: null,
+                playerCount: null,
+                maxPlayers: 2
             },
             interface: {
                 jogoAtivo: false,
@@ -162,16 +166,19 @@ export default {
                 resolve()
             })
         },
-        mle(iLinha, iColuna) {
-            this.game.ultimaPecaSelecionada = null
-            if (this.game.movimentacaoOcorrendo) return
-
-            const linha = [...this.matrizTiles[0]]
-            
-            if (linha[iColuna].status === 1) {
-                linha[iColuna].status = null
-                this.$set(this.matrizTiles, 0, linha)
-            }
+        mle(outcall, iLinha, iColuna) {
+            return new Promise((resolve, reject) => {
+                if (!outcall) this.game.ultimaPecaSelecionada = null
+                if (this.game.movimentacaoOcorrendo) return
+    
+                const linha = [...this.matrizTiles[0]]
+                
+                if (linha[iColuna].status === 1) {
+                    linha[iColuna].status = null
+                    this.$set(this.matrizTiles, 0, linha)
+                }
+                resolve()
+            })
         },
         cli(outcall, iLinha, iColuna) {
             if (this.game.movimentacaoOcorrendo) return
@@ -195,8 +202,10 @@ export default {
 
             const velocidade = 100 * iLinha
             const pecaAtual = this.$refs[`peca0:${iColuna}`][0].style
-            pecaAtual.transition = `margin-top ${velocidade}ms linear`
-            pecaAtual.marginTop = `calc(var(--con4-board_tr_size) * ${(iLinha - 3.5) * 2})`
+            pecaAtual.transition = `margin-top linear ${velocidade / 1000}s`
+            setTimeout(() => {
+                pecaAtual.marginTop = `calc(var(--con4-board_tr_size) * ${(iLinha - 3.5) * 2})`
+            }, 1)
 
             setTimeout(() => {
                 pecaAtual.transition = ""
@@ -329,7 +338,7 @@ export default {
                             const linha = [...this.matrizTiles[this.game.ultimaPecaSelecionada.iLinha]]
                             linha[this.game.ultimaPecaSelecionada.iColuna].status = 1
                             linha[this.game.ultimaPecaSelecionada.iColuna].time = this.game.alternarTime
-    
+                            
                             this.$set(this.matrizTiles, 0, linha)
                         }
                         this.game.movimentacaoOcorrendo = false
@@ -342,20 +351,18 @@ export default {
             }, velocidade)
         },
         criarServidor() {
+            this.dadosUsuario.serverName = "Servidor de " + this.dadosUsuario.userName
             this.socket.emit("con4:CREATE_SERVER", {
-                serverName: "Servidor de " + this.dadosUsuario.nome,
-                maxPlayers: 2
+                serverName: this.dadosUsuario.serverName,
+                maxPlayers: this.dadosUsuario.maxPlayers
             })
         },
         async testeFuncionalidade(e) {
             if (e.keyCode !== 84) return
 
-            // TODO
-            //this.mle(this.ultimaPecaSelecionada.iLinha, this.ultimaPecaSelecionada.iColuna)
-            this.movimentacaoOcorrendo = true
+            if (this.game.ultimaPecaSelecionada !== null) await this.mle(true, 0, this.game.ultimaPecaSelecionada.iColuna)
             await this.men(true, 2)
             this.cli(true, 2, 2)
-            
         },
         login() {
             axios.get("/con4/serverlist")
@@ -384,9 +391,10 @@ export default {
         },
         conectarServidor(serverId) {
             this.socket.on("con4:SERVER_CONNECTED", res => {
+                this.dadosUsuario = res
                 this.interface.jogadoresConectados = res
             })
-            this.socket.emit("con4:CONNECT_SERVER", { serverId: serverId, userName: this.dadosUsuario.nome })
+            this.socket.emit("con4:CONNECT_SERVER", { serverId: serverId, userName: this.dadosUsuario.userName })
         }
     },
     computed: {
