@@ -20,11 +20,13 @@ app.use("/con4", routes.fisherman)
 const io = require("socket.io")(app.listen(3001), {
     cors: {
         origin: "http://localhost:3000",
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+        methods: "*"
     }
 })
 
 io.on("connection", socket => {
-    sockets.con4(io, socket)
-    sockets.fisherman(io, socket)
+    const userId = socket.conn.id
+
+    sockets.con4(io, socket, userId)
+    sockets.fisherman(io, socket, userId)
 })

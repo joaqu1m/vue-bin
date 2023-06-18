@@ -6,6 +6,7 @@
     convidar por URL no multiplayer online
     vs bot
     interface do jogo melhorada
+    opçao de jogar com mais de 2 jogadores
 
     manual de ligue-4
 
@@ -19,8 +20,12 @@
         <div class="lobby" v-if="!interface.jogoAtivo">
             <template v-if="interface.fase === 1">
                 <div class="landing-title">
-                    <template v-if="lang === 'pt-BR' || lang === 'pt'">LIGUE-4</template>
-                    <template v-else>CONNECT-4</template>
+                    <template v-if="lang === 'pt-BR' || lang === 'pt'">
+                        LIGUE-4
+                    </template>
+                    <template v-else>
+                        CONNECT-4
+                    </template>
                 </div>
                 <div class="landing-main">
                     <div class="landing-main-half"></div>
@@ -58,17 +63,25 @@
                 </div>
             </template>
             <template v-else-if="interface.fase === 3">
-                <input type="text" placeholder="Nickname" v-model="dadosUsuario.nome">
-                <button @click="interface.fase = 4">pronto</button>
-                <button @click="testeReq">testeReq</button>
-                <button @click="testeConexaoSocket">testeConexaoSocket</button>
+                <input @keydown.enter="login" type="text" placeholder="Nickname" v-model="dadosUsuario.userName">
             </template>
             <template v-else-if="interface.fase === 4">
-                serverlist
-                <h3>criar servidor</h3>
-                <ul>
-                    <li v-for="(servidor, i) in servidores" :key=i>{{ servidor }}</li>
-                </ul>
+                <template v-if="interface.jogadoresConectados.length === 0">
+                    <button @click="criarServidor">criar servidor</button>
+                    <h3>serverlist</h3>
+                    <div class="serverlist">
+                        <div @click="conectarServidor(servidor.serverId)" class="server" v-for="(servidor, i) in interface.servidores" :key=i>
+                            <span>{{ servidor.serverName }}</span>
+                            <span>{{ servidor.playerCount }}/{{ servidor.playerMax }}</span>
+                        </div>
+                    </div>
+                </template>
+                <template v-else>
+                    <div>
+                        <h3>servidor conectado</h3>
+                        <span>{{ interface.jogadoresConectados }}</span>
+                    </div>
+                </template>
             </template>
         </div>
         <div class="board-placeholder" v-else>
@@ -83,7 +96,7 @@
                 <div v-for="(linha, iLinha) in [...Array(matrizTiles.length - 1)]" :key="iLinha" class="board-tr">
                     <div v-for="(coluna, iColuna) in [...Array(matrizTiles[iLinha].length)]" :key="`${iLinha}${iColuna}`"
                         :ref="`espaco${iLinha}:${iColuna}`" class="board-tile" @mouseenter="men(false, iColuna)"
-                        @mouseleave="mle(iLinha + 1, iColuna)" @click="cli(false, iLinha + 1, iColuna)">
+                        @mouseleave="mle(false, iLinha + 1, iColuna)" @click="cli(false, iLinha + 1, iColuna)">
                         <div class="board-circulo-placeholder"></div>
                     </div>
                 </div>
@@ -102,12 +115,18 @@ export default {
     data() {
         return {
             dadosUsuario: {
-                nome: "",
+                userId: null,
+                userName: "",
+                serverId: null,
+                serverName: null,
+                playerCount: null,
+                maxPlayers: 2
             },
             interface: {
                 jogoAtivo: false,
                 fase: 1,
                 servidores: [],
+                jogadoresConectados: []
             },
             game: {
                 alternarTime: 1,
@@ -136,26 +155,30 @@ export default {
     },
     methods: {
         men(outcall, iColuna) {
+            return new Promise ((resolve, reject) => {
+                if (!outcall) this.game.ultimaPecaSelecionada = { iLinha: 0, iColuna: iColuna }
+                if (this.game.movimentacaoOcorrendo) return
 
-            if (!outcall) this.game.ultimaPecaSelecionada = { iLinha: 0, iColuna: iColuna }
-            
-            if (this.game.movimentacaoOcorrendo) return
-
-            const linha = [...this.matrizTiles[0]]
-            linha[iColuna].status = 1
-            linha[iColuna].time = this.game.alternarTime
-            this.$set(this.matrizTiles, 0, linha)
-        },
-        mle(iLinha, iColuna) {
-            this.game.ultimaPecaSelecionada = null
-            if (this.game.movimentacaoOcorrendo) return
-
-            const linha = [...this.matrizTiles[0]]
-            
-            if (linha[iColuna].status === 1) {
-                linha[iColuna].status = null
+                const linha = [...this.matrizTiles[0]]
+                linha[iColuna].status = 1
+                linha[iColuna].time = this.game.alternarTime
                 this.$set(this.matrizTiles, 0, linha)
-            }
+                resolve()
+            })
+        },
+        mle(outcall, iLinha, iColuna) {
+            return new Promise((resolve, reject) => {
+                if (!outcall) this.game.ultimaPecaSelecionada = null
+                if (this.game.movimentacaoOcorrendo) return
+    
+                const linha = [...this.matrizTiles[0]]
+                
+                if (linha[iColuna].status === 1) {
+                    linha[iColuna].status = null
+                    this.$set(this.matrizTiles, 0, linha)
+                }
+                resolve()
+            })
         },
         cli(outcall, iLinha, iColuna) {
             if (this.game.movimentacaoOcorrendo) return
@@ -179,8 +202,10 @@ export default {
 
             const velocidade = 100 * iLinha
             const pecaAtual = this.$refs[`peca0:${iColuna}`][0].style
-            pecaAtual.transition = `margin-top ${velocidade}ms linear`
-            pecaAtual.marginTop = `calc(var(--con4-board_tr_size) * ${(iLinha - 3.5) * 2})`
+            pecaAtual.transition = `margin-top linear ${velocidade / 1000}s`
+            setTimeout(() => {
+                pecaAtual.marginTop = `calc(var(--con4-board_tr_size) * ${(iLinha - 3.5) * 2})`
+            }, 1)
 
             setTimeout(() => {
                 pecaAtual.transition = ""
@@ -313,7 +338,7 @@ export default {
                             const linha = [...this.matrizTiles[this.game.ultimaPecaSelecionada.iLinha]]
                             linha[this.game.ultimaPecaSelecionada.iColuna].status = 1
                             linha[this.game.ultimaPecaSelecionada.iColuna].time = this.game.alternarTime
-    
+                            
                             this.$set(this.matrizTiles, 0, linha)
                         }
                         this.game.movimentacaoOcorrendo = false
@@ -325,29 +350,51 @@ export default {
 
             }, velocidade)
         },
-        testeReq() {
-            axios.get("/con4")
-            .then(console.log)
-            .catch(console.log)
-        },
-        testeConexaoSocket() {
-            // Envia mensagem de teste ao backend
-            this.socket.emit("con4:ENVIAR_TESTE", {
-                nome: "Teste",
-                numeroDaSorte: Math.random(),
-                data: new Date()
+        criarServidor() {
+            this.dadosUsuario.serverName = "Servidor de " + this.dadosUsuario.userName
+            this.socket.emit("con4:CREATE_SERVER", {
+                serverName: this.dadosUsuario.serverName,
+                maxPlayers: this.dadosUsuario.maxPlayers
             })
         },
-        testeFuncionalidade(e) {
+        async testeFuncionalidade(e) {
             if (e.keyCode !== 84) return
 
-            // TODO
-            //this.mle(this.ultimaPecaSelecionada.iLinha, this.ultimaPecaSelecionada.iColuna)
-            this.movimentacaoOcorrendo = true
-            this.men(true, 2)
-            setTimeout(() => {
-                this.cli(true, 2, 2)
-            }, 1)
+            if (this.game.ultimaPecaSelecionada !== null) await this.mle(true, 0, this.game.ultimaPecaSelecionada.iColuna)
+            await this.men(true, 2)
+            this.cli(true, 2, 2)
+        },
+        login() {
+            axios.get("/con4/serverlist")
+            .then(res => {
+                this.interface.servidores = res.data
+            })
+            .catch(console.log)
+
+            this.socket.on("con4:SERVER_CREATED", res => {
+                if (res.userId === this.dadosUsuario.userId) {
+                    this.conectarServidor(res.serverId)
+                }
+                this.interface.servidores.push(res)
+            })
+            this.socket.on("con4:SERVER_DELETED", res => {
+                for(let i = this.interface.servidores.length-1; i >= 0; i--) {
+                    for(let j = 0; j < res.length; j++) {
+                        if (this.interface.servidores[i].serverId === res[j]) {
+                            this.interface.servidores.splice(i, 1)
+                            break
+                        }
+                    }
+                }
+            })
+            this.interface.fase = 4
+        },
+        conectarServidor(serverId) {
+            this.socket.on("con4:SERVER_CONNECTED", res => {
+                this.dadosUsuario = res
+                this.interface.jogadoresConectados = res
+            })
+            this.socket.emit("con4:CONNECT_SERVER", { serverId: serverId, userName: this.dadosUsuario.userName })
         }
     },
     computed: {
@@ -360,8 +407,7 @@ export default {
     },
     watch: {},
     mounted() {
-        // Quando recebe teste, dá console.log
-        this.socket.on("con4:TESTE", console.log)
+        this.dadosUsuario.userId = this.socket.io.engine.id
     },
     created() {
         window.addEventListener("keydown", this.testeFuncionalidade)
@@ -466,6 +512,23 @@ export default {
     background-image: url("../assets/con4/img/online.png");
 }
 
+.serverlist {
+    width: 500px;
+    height: 500px;
+    overflow-y: scroll;
+}
+.server {
+    width: 100%;
+    height: 50px;
+    background-color: #003386;
+    color: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    cursor: pointer;
+}
 
 
 /* Tabuleiro */
