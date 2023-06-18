@@ -17,5 +17,9 @@ export default new VueRouter({
         path: "/fisherman",
         name: "fisherman",
         component: () => import("./views/Fisherman.vue")
+    }, {
+        path: "/globe",
+        name: "globe",
+        component: () => import("./views/Globe.vue")
     }]
 })

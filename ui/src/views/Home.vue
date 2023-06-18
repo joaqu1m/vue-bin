@@ -35,6 +35,10 @@ export default {
                 name: "fisherman",
                 path: "/fisherman",
                 img: "https://pescadordeportivo.files.wordpress.com/2017/07/pescador-deportivo.png"
+            }, {
+                name: "globe",
+                path: "/globe",
+                img: "https://www.pngkey.com/png/full/3-34977_globe-png-transparent-background-globe-png.png"
             }]
         }
     },
