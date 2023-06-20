@@ -25,8 +25,6 @@ const imports = { earth, moon, mars, jupiter, venus }
 
 export default {
     name: "Globe",
-    props: [],
-    components: {},
     data() {
         return {
             width: 500,

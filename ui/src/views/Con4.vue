@@ -1,14 +1,16 @@
 <!--
     IDEIAS RESTANTES
+    tela de vitoria - ESSENICAL PRA AGORA!!!!!!
     multiplayer online
+    servidores sumirem quando nao houver jogadores esta quebrado
     convidar por URL no multiplayer online
     vs bot
     interface do jogo melhorada
     opçao de jogar com mais de 2 jogadores
+    animaçao chegando servidores novos
 
     manual de ligue-4
 
-    tela de vitoria - adiada por falta de curso
     modais tela de multiplayer online - adiada por falta de curso
     desenho do close na landing page - adiada por falta de close
 -->
@@ -47,15 +49,15 @@
                     <div class="landing-main-only">
                         <div class="landing-main-button-placeholder">
                             <span class="landing-main-button-text">Solo</span>
-                            <button @click="interface.jogoAtivo = true" class="landing-main-button solo"></button>
+                            <button @click="selecionarModo('solo')" class="landing-main-button solo"></button>
                         </div>
                         <div class="landing-main-button-placeholder">
                             <span class="landing-main-button-text">Local</span>
-                            <button @click="interface.jogoAtivo = true" class="landing-main-button local"></button>
+                            <button @click="selecionarModo('local')" class="landing-main-button local"></button>
                         </div>
                         <div class="landing-main-button-placeholder">
                             <span class="landing-main-button-text">Online</span>
-                            <button @click="interface.fase = 3" class="landing-main-button online"></button>
+                            <button @click="selecionarModo('online')" class="landing-main-button online"></button>
                         </div>
                     </div>
                 </div>
@@ -67,17 +69,18 @@
                 <template v-if="interface.jogadoresConectados.length === 0">
                     <button @click="criarServidor">criar servidor</button>
                     <h3>serverlist</h3>
-                    <div class="serverlist">
-                        <div @click="conectarServidor(servidor.serverId)" class="server" v-for="(servidor, i) in interface.servidores" :key=i>
+                    <transition-group name="serverlist" tag="div" class="serverlist">
+                        <div @click="conectarServidor(servidor.serverId)" class="server" v-for="(servidor, i) in interface.servidores" :key=servidor.serverId>
                             <span>{{ servidor.serverName }}</span>
                             <span>{{ servidor.playerCount }}/{{ servidor.playerMax }}</span>
                         </div>
-                    </div>
+                    </transition-group>
                 </template>
                 <template v-else>
                     <div>
                         <h3>servidor conectado</h3>
                         <span>{{ interface.jogadoresConectados }}</span>
+                        <button @click="iniciarJogo">Iniciar jogo</button>
                     </div>
                 </template>
             </template>
@@ -108,8 +111,6 @@ import axios from "../api/AxiosConfig"
 
 export default {
     name: "Con4",
-    props: [],
-    components: {},
     data() {
         return {
             dadosUsuario: {
@@ -130,6 +131,10 @@ export default {
                 alternarTime: 1,
                 ultimaPecaSelecionada: null,
                 movimentacaoOcorrendo: false,
+                modeSettings: {
+                    modo: null,
+                    jogadorAtual: false
+                }
             },
             matrizTiles: [
                 // Status
@@ -155,7 +160,7 @@ export default {
         men(outcall, iColuna) {
             return new Promise ((resolve, reject) => {
                 if (!outcall) this.game.ultimaPecaSelecionada = { iLinha: 0, iColuna: iColuna }
-                if (this.game.movimentacaoOcorrendo) return
+                if (this.game.movimentacaoOcorrendo || (this.game.modeSettings.modo == "online" && !this.game.modeSettings.jogadorAtual)) return
 
                 const linha = [...this.matrizTiles[0]]
                 linha[iColuna].status = 1
@@ -167,7 +172,7 @@ export default {
         mle(outcall, iLinha, iColuna) {
             return new Promise((resolve, reject) => {
                 if (!outcall) this.game.ultimaPecaSelecionada = null
-                if (this.game.movimentacaoOcorrendo) return
+                if (this.game.movimentacaoOcorrendo || (this.game.modeSettings.modo == "online" && !this.game.modeSettings.jogadorAtual)) return
     
                 const linha = [...this.matrizTiles[0]]
                 
@@ -179,7 +184,7 @@ export default {
             })
         },
         cli(outcall, iLinha, iColuna) {
-            if (this.game.movimentacaoOcorrendo) return
+            if (this.game.movimentacaoOcorrendo || (this.game.modeSettings.modo == "online" && !this.game.modeSettings.jogadorAtual)) return
             this.game.movimentacaoOcorrendo = true
 
             let linha = null
@@ -340,10 +345,18 @@ export default {
                             this.$set(this.matrizTiles, 0, linha)
                         }
                         this.game.movimentacaoOcorrendo = false
+
+                        // EMITIR PARA O SERVIDOR QUE A JOGADA FOI FEITA
                     }, 300)
                 } else {
-                    alert("VITORIA!!!!!!!!!!!!!!!!!")
-                    window.location.reload()
+                    console.log(direcoesGanhadoras)
+
+                    for(let i = 0; i < direcoesGanhadoras.length; i++) {
+                        const direcaoAtual = direcoesGanhadoras[i]
+                        console.log(direcaoAtual)
+                    }
+
+                    // EMITIR PARA O SERVIDOR A JOGADA + O ANUNCIO DA VITORIA
                 }
 
             }, velocidade)
@@ -385,14 +398,42 @@ export default {
                     }
                 }
             })
+            this.socket.on("con4:SESSION_RES", res => {
+                switch (res.tipoReq) {
+                    case "connect":
+                        this.interface.jogadoresConectados = res.info
+                        break
+                    case "start":
+                        this.interface.jogoAtivo = true
+                        if (res.info === this.dadosUsuario.userId) {
+                            this.game.modeSettings.jogadorAtual = true
+                        }
+                        break
+                }
+            })
             this.interface.fase = 4
         },
         conectarServidor(serverId) {
-            this.socket.on("con4:SERVER_CONNECTED", res => {
-                this.dadosUsuario = res
-                this.interface.jogadoresConectados = res
+            this.dadosUsuario.serverId = serverId
+            this.socket.emit("con4:SESSION", {
+                tipoReq: "connect",
+                serverId: this.dadosUsuario.serverId,
+                userName: this.dadosUsuario.userName
             })
-            this.socket.emit("con4:CONNECT_SERVER", { serverId: serverId, userName: this.dadosUsuario.userName })
+        },
+        iniciarJogo() {
+            this.socket.emit("con4:SESSION", {
+                tipoReq: "start",
+                serverId: this.dadosUsuario.serverId
+            })
+        },
+        selecionarModo(modo) {
+            this.game.modeSettings.modo = modo
+            if (modo == "solo" || modo == "local") {
+                this.interface.jogoAtivo = true
+            } else if (modo == "online") {
+                this.interface.fase = 3
+            }
         }
     },
     computed: {
@@ -515,6 +556,22 @@ export default {
     height: 500px;
     overflow-y: scroll;
 }
+
+.serverlist-enter-active,
+.serverlist-leave-active {
+    transition: all 0.5s;
+}
+
+.serverlist-enter,
+.serverlist-leave-to {
+    opacity: 0;
+    transform: translate3d(-100%, 0, 0);
+}
+
+.serverlist-move {
+    transition: transform 0.3s;
+}
+
 .server {
     width: 100%;
     height: 50px;

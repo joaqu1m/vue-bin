@@ -13,8 +13,6 @@
 <script>
 export default {
     name: "Fisherman",
-    props: [],
-    components: {},
     data() {
         return {
             tamanhoLinha: 0
@@ -25,8 +23,6 @@ export default {
             this.tamanhoLinha = `calc(${clientY}px - var(--fisherman-altura-vara))`
         }
     },
-    computed: {},
-    watch: {},
     created() {
         window.addEventListener("mousemove", this.mouseMove)
     }

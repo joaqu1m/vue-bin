@@ -115,7 +115,8 @@ const checkDeleteableServers = () => {
 }
 
 const procurarPorServerId = (serverId) => {
-    return localDB.serverList.filter(sv => sv.server.id = serverId)[0].players
+    const server = localDB.serverList.filter(sv => sv.server.id = serverId)
+    return server[0].players
 }
 
 module.exports = {
@@ -126,6 +127,6 @@ module.exports = {
     joinServer: joinServer,
     leaveServer: leaveServer,
     checkDeleteableServers: checkDeleteableServers,
-    procurarPorServerId: procurarPorServerId
+    procurarPorServerId: procurarPorServerId,
 //    postMensagem: postMensagem
 }

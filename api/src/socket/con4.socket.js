@@ -17,14 +17,21 @@ module.exports = (io, socket, userId) => {
             dateCreated: sv.server.dateCreated
         })
     })
-    socket.on("con4:CONNECT_SERVER", payload => {
+    socket.on("con4:SESSION", payload => {
         const svId = payload.serverId
-        if (controller.checkServerAvaliability(svId, false)) {
-            const sv = controller.joinServer(svId, userId, payload.userName)
-            socket.join(svId)
-            
-            io.to(svId).emit("con4:SERVER_CONNECTED", controller.procurarPorServerId(svId))
-            if (!controller.checkServerAvaliability(svId, true)) io.emit("con4:SERVER_DELETED", [svId])
+        switch (payload.tipoReq) {
+            case "connect":
+                if (controller.checkServerAvaliability(svId, false)) {
+                    controller.joinServer(svId, userId, payload.userName)
+                    socket.join(svId)
+                    
+                    io.to(svId).emit("con4:SESSION_RES", { tipoReq: "connect", info: controller.procurarPorServerId(svId) })
+                    if (!controller.checkServerAvaliability(svId, true)) io.emit("con4:SERVER_DELETED", [svId])
+                }
+                break
+            case "start":
+                const serv = controller.procurarPorServerId(svId)
+                io.to(svId).emit("con4:SESSION_RES", { tipoReq: "start", info: serv[Math.floor(Math.random() * serv.length)].id })
         }
     })
 }
