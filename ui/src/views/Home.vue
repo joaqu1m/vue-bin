@@ -38,7 +38,7 @@ export default {
             }, {
                 name: "globe",
                 path: "/globe",
-                img: "https://www.pngkey.com/png/full/3-34977_globe-png-transparent-background-globe-png.png"
+                img: "https://cf.shopee.com.br/file/fae4fa366cb6eb98ead3b3a75b68fc58"
             }]
         }
     },

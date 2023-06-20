@@ -1,7 +1,5 @@
 <!--
     IDEIAS RESTANTES
-    servidores
-    deletar servidores automaticamente
     multiplayer online
     convidar por URL no multiplayer online
     vs bot
