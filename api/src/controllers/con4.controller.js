@@ -120,13 +120,12 @@ const procurarPorServerId = (serverId) => {
 }
 
 module.exports = {
-    findAll: findAll,
-    getServerlist: getServerlist,
-    checkServerAvaliability: checkServerAvaliability,
-    createServer: createServer,
-    joinServer: joinServer,
-    leaveServer: leaveServer,
-    checkDeleteableServers: checkDeleteableServers,
-    procurarPorServerId: procurarPorServerId,
-//    postMensagem: postMensagem
+    findAll,
+    getServerlist,
+    checkServerAvaliability,
+    createServer,
+    joinServer,
+    leaveServer,
+    checkDeleteableServers,
+    procurarPorServerId
 }

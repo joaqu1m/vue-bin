@@ -2,14 +2,14 @@
     IDEIAS RESTANTES
     tela de vitoria - ESSENICAL PRA AGORA!!!!!!
     multiplayer online
-    servidores sumirem quando nao houver jogadores esta quebrado
+    servidores sumirem quando nao houver jogadores esta quebrado // é por causa do socket nao cortar a conexao no reload
     convidar por URL no multiplayer online
     vs bot
     interface do jogo melhorada
     opçao de jogar com mais de 2 jogadores
-    animaçao chegando servidores novos
+    animaçao pesquisando servidores
 
-    manual de ligue-4
+    manual de ligue-4 - videozinho legal feito em css
 
     modais tela de multiplayer online - adiada por falta de curso
     desenho do close na landing page - adiada por falta de close
@@ -349,17 +349,153 @@ export default {
                         // EMITIR PARA O SERVIDOR QUE A JOGADA FOI FEITA
                     }, 300)
                 } else {
-                    console.log(direcoesGanhadoras)
 
-                    for(let i = 0; i < direcoesGanhadoras.length; i++) {
-                        const direcaoAtual = direcoesGanhadoras[i]
-                        console.log(direcaoAtual)
-                    }
+                    setTimeout(() => {
+                        if (this.game.modeSettings.modo == "local") {
+                            this.vitoriaOcorreu(
+                                this.game.alternarTime === 1 ? 2 : 1,
+                                direcoesGanhadoras
+                            )
+                        }
+                    }, 1)
 
                     // EMITIR PARA O SERVIDOR A JOGADA + O ANUNCIO DA VITORIA
                 }
 
             }, velocidade)
+        },
+        vitoriaOcorreu(jogador, direcoes) {
+            
+            console.log(`Jogador ${jogador}`)
+            for(let i = 0; i < direcoes.length; i++) {
+                const direcaoAtual = direcoes[i]
+                console.log(direcaoAtual)
+                
+                if (direcaoAtual.direcao === "h") {
+                    const pecas = direcaoAtual.pecas.map(p => p.iColuna)
+                    const pecaMaisAEsquerda = Math.min(...pecas)
+                    const tamanhoArea = Math.max(...pecas) - pecaMaisAEsquerda + 1
+
+                    const novaDiv = document.createElement("div")
+                    novaDiv.style.zIndex = "10"
+                    novaDiv.style.height = "calc(var(--con4-board_circle_size) * 1.3)"
+                    novaDiv.style.width = `calc(var(--con4-board_tile_size) * ${tamanhoArea})`
+                    novaDiv.style.left = "0"
+                    novaDiv.style.borderRadius = "var(--con4-board_circle_size)"
+                    novaDiv.style.backgroundColor = "#4986e76e"
+                    novaDiv.style.position = "absolute"
+
+                    this.$refs[`espaco${direcaoAtual.pecas[0].iLinha - 1}:${pecaMaisAEsquerda}`][0].appendChild(novaDiv)
+                } else if (direcaoAtual.direcao === "v") {
+                    const pecas = direcaoAtual.pecas.map(p => p.iLinha)
+                    const maisAcima = Math.min(...pecas)
+                    const tamanhoArea = Math.max(...pecas) - maisAcima + 1
+
+                    const novaDiv = document.createElement("div")
+                    novaDiv.style.zIndex = "10"
+                    novaDiv.style.height = `calc(var(--con4-board_tr_size) * ${tamanhoArea})`
+                    novaDiv.style.width = "calc(var(--con4-board_circle_size) * 1.3)"
+                    novaDiv.style.top = "0"
+                    novaDiv.style.borderRadius = "var(--con4-board_circle_size)"
+                    novaDiv.style.backgroundColor = "#4986e76e"
+                    novaDiv.style.position = "absolute"
+
+                    this.$refs[`espaco${maisAcima - 1}:${direcaoAtual.pecas[0].iColuna}`][0].appendChild(novaDiv)
+                } else if (direcaoAtual.direcao === "r") {
+                    // da direita cima => esquerda baixo
+                    const pecasLinha = direcaoAtual.pecas.map(p => p.iLinha)
+                    const pecasColuna = direcaoAtual.pecas.map(p => p.iColuna)
+
+                    const qtdPecasHorizontal = Math.max(...pecasColuna) - Math.min(...pecasColuna) + 1
+                    const qtdPecasVertical = Math.max(...pecasLinha) - Math.min(...pecasLinha) + 1
+
+                    let board_tr_size = getComputedStyle(document.documentElement).getPropertyValue("--con4-board_tr_size")
+                    let board_tile_size = getComputedStyle(document.documentElement).getPropertyValue("--con4-board_tile_size")
+                    
+                    const trocarCaractere = (texto, charAtual, charIntencionado) => {
+                        while (texto.indexOf(charAtual) > -1) {
+                            texto = texto.replace(charAtual, charIntencionado)
+                        }
+                        return texto
+                    }
+
+                    board_tr_size = eval(trocarCaractere(trocarCaractere(board_tr_size, "vw", ""), "calc", ""))
+                    board_tile_size = eval(trocarCaractere(trocarCaractere(board_tile_size, "vw", ""), "calc", ""))
+                    
+                    const catetoOposto = qtdPecasVertical * board_tr_size
+                    const catetoAdjacente = qtdPecasHorizontal * board_tile_size
+
+                    const graus = Math.atan(catetoOposto / catetoAdjacente) * (180 / Math.PI)
+
+                    const novaDiv = document.createElement("div")
+                    
+                    novaDiv.style.transform = `rotate(${graus - 90}deg)`
+
+                    novaDiv.style.height = `${(((board_tile_size ** 2) + (board_tr_size ** 2)) ** 0.5) * qtdPecasHorizontal}vw`
+
+                    novaDiv.style.zIndex = "10"
+                    novaDiv.style.width = "calc(var(--con4-board_circle_size) * 1.3)"
+                    //novaDiv.style.transformOrigin = "top"
+                    // Lembrar de fazer um cálculo a partir do valor da hipotenusa para definir o valor dos catetos
+                    //novaDiv.style.left = "calc(((var(--con4-board_tr_size) - var(--con4-board_circle_size)) / 2) * -1.5)"
+                    novaDiv.style.left = "calc(var(--con4-board_circle_size) * 1.3 / 2 * -1)"
+                    novaDiv.style.top = "0"
+                    novaDiv.style.transformOrigin = "center top"
+                    //novaDiv.style.top = "calc(((var(--con4-board_tr_size) - var(--con4-board_circle_size)) / 2) * 1.5)"
+                    novaDiv.style.borderRadius = "var(--con4-board_circle_size)"
+                    novaDiv.style.backgroundColor = "#4986e76e"
+                    novaDiv.style.position = "absolute"
+
+                    this.$refs[`espaco${Math.min(...pecasLinha) - 1}:${Math.min(...pecasColuna)}`][0].appendChild(novaDiv)
+                } else if (direcaoAtual.direcao === "l") {
+                    // da direita cima => esquerda baixo
+                    const pecasLinha = direcaoAtual.pecas.map(p => p.iLinha)
+                    const pecasColuna = direcaoAtual.pecas.map(p => p.iColuna)
+
+                    const qtdPecasHorizontal = Math.max(...pecasColuna) - Math.min(...pecasColuna) + 1
+                    const qtdPecasVertical = Math.max(...pecasLinha) - Math.min(...pecasLinha) + 1
+
+                    let board_tr_size = getComputedStyle(document.documentElement).getPropertyValue("--con4-board_tr_size")
+                    let board_tile_size = getComputedStyle(document.documentElement).getPropertyValue("--con4-board_tile_size")
+                    
+                    const trocarCaractere = (texto, charAtual, charIntencionado) => {
+                        while (texto.indexOf(charAtual) > -1) {
+                            texto = texto.replace(charAtual, charIntencionado)
+                        }
+                        return texto
+                    }
+
+                    board_tr_size = eval(trocarCaractere(trocarCaractere(board_tr_size, "vw", ""), "calc", ""))
+                    board_tile_size = eval(trocarCaractere(trocarCaractere(board_tile_size, "vw", ""), "calc", ""))
+                    
+                    const catetoOposto = qtdPecasVertical * board_tr_size
+                    const catetoAdjacente = qtdPecasHorizontal * board_tile_size
+
+                    const graus = Math.atan(catetoOposto / catetoAdjacente) * (180 / Math.PI)
+
+                    const novaDiv = document.createElement("div")
+                    
+                    novaDiv.style.transform = `rotate(${graus + 15}deg)`
+
+                    novaDiv.style.height = `${(((board_tile_size ** 2) + (board_tr_size ** 2)) ** 0.5) * qtdPecasHorizontal}vw`
+
+                    novaDiv.style.zIndex = "10"
+                    novaDiv.style.width = "calc(var(--con4-board_circle_size) * 1.3)"
+                    //novaDiv.style.transformOrigin = "top"
+                    // Lembrar de fazer um cálculo a partir do valor da hipotenusa para definir o valor dos catetos
+                    //novaDiv.style.left = "calc(((var(--con4-board_tr_size) - var(--con4-board_circle_size)) / 2) * -1.5)"
+                    novaDiv.style.left = "calc(var(--con4-board_circle_size) * 1.3 / 2 * -1)"
+                    novaDiv.style.top = "0"
+                    novaDiv.style.transformOrigin = "center top"
+                    //novaDiv.style.top = "calc(((var(--con4-board_tr_size) - var(--con4-board_circle_size)) / 2) * 1.5)"
+                    novaDiv.style.borderRadius = "var(--con4-board_circle_size)"
+                    novaDiv.style.backgroundColor = "#4986e76e"
+                    novaDiv.style.position = "absolute"
+
+                    this.$refs[`espaco${Math.min(...pecasLinha) - 1}:${Math.max(...pecasColuna)}`][0].appendChild(novaDiv)
+
+                }
+            }
         },
         criarServidor() {
             this.dadosUsuario.serverName = "Servidor de " + this.dadosUsuario.userName
