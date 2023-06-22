@@ -1,18 +1,15 @@
 <!--
     IDEIAS RESTANTES
-    tela de vitoria - ESSENICAL PRA AGORA!!!!!!
-    multiplayer online
-    servidores sumirem quando nao houver jogadores esta quebrado // é por causa do socket nao cortar a conexao no reload
-    convidar por URL no multiplayer online
-    vs bot
+    modais tela de multiplayer online
     interface do jogo melhorada
-    opçao de jogar com mais de 2 jogadores
+    convidar por URL no multiplayer online
+    foto para sua bolinha
     animaçao pesquisando servidores
-
+    vs bot
+    opçao de jogar com mais de 2 jogadores
     manual de ligue-4 - videozinho legal feito em css
 
-    modais tela de multiplayer online - adiada por falta de curso
-    desenho do close na landing page - adiada por falta de close
+    desenho do close na landing page - adiada
 -->
 
 <template>
@@ -63,12 +60,10 @@
                 </div>
             </template>
             <template v-else-if="interface.fase === 3">
-                <input @keydown.enter="login" type="text" placeholder="Nickname" v-model="dadosUsuario.userName">
-            </template>
-            <template v-else-if="interface.fase === 4">
                 <template v-if="interface.jogadoresConectados.length === 0">
                     <button @click="criarServidor">criar servidor</button>
                     <h3>serverlist</h3>
+                    <input class="serverlist-searchbar" placeholder="Pesquise por algo">
                     <transition-group name="serverlist" tag="div" class="serverlist">
                         <div @click="conectarServidor(servidor.serverId)" class="server" v-for="(servidor, i) in interface.servidores" :key=servidor.serverId>
                             <span>{{ servidor.serverName }}</span>
@@ -103,14 +98,69 @@
                 </div>
             </div>
         </div>
+        <ModalGlobal efeito="canhao" animacao="modal" :modalAberto="interface.modalVitoria" width="70vh">
+            <div style="width: 100%; height: 21vh; display: flex; justify-content: center; align-items: center;">
+                <h1 style="text-align: center;" :style="{ color: game.jogadorVencedor == 1 ? '#e43e2b' : '#ffe932' }">
+                    Vitória do jogador {{ game.jogadorVencedor }}
+                </h1>
+            </div>
+            <div style="width: 75%; height: 28vh;" v-if="false"></div>
+            <div style="width: 100%; height: 21vh; display: flex; justify-content: center; align-items: center;">
+                <button style="
+                width: 200px;
+                height: 50px;
+                cursor: pointer;
+                border-radius: 20px;
+                background-color: #003386;
+                color: white;
+                border: 1px gray solid;
+                " @click="retornar">Retornar ao início</button>
+            </div>
+        </ModalGlobal>
+        <ModalGlobal animacao="modal" :modalAberto="interface.modalNickname" width="70vh">
+            <div style="
+            width: 100%;
+            height: 14vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            ">
+                <h2 v-if="lang === 'pt-BR' || lang === 'pt'">Escolha um nickname para continuar</h2>
+                <h2 v-else>Type a nickname to continue</h2>
+            </div>
+            <div style="width: 100%; height: 28vh; display: flex; align-items: center; justify-content: space-evenly; flex-direction: column;">
+                <input type="text" style="width: 250px; height: 30px; border-radius: 5px; border: 1px solid rgb(185, 185, 185); padding: 5px;" placeholder="Nickname" @keydown.enter="aceitarNickname" v-model="dadosUsuario.userName">
+                <button style="
+                width: 200px;
+                height: 30px;
+                cursor: pointer;
+                border-radius: 5px;
+                background-color: #003386;
+                color: white;
+                font-weight: bold;
+                border: 1px gray solid;
+                " @click="aceitarNickname">
+                <template v-if="lang === 'pt-BR' || lang === 'pt'">
+                    Avançar
+                </template>
+                <template v-else>
+                    Continue
+                </template>
+            </button>
+            </div>
+        </ModalGlobal>
         </div>
 </template>
 
 <script>
 import axios from "../api/AxiosConfig"
+import ModalGlobal from "../components/ModalGlobal.vue"
 
 export default {
     name: "Con4",
+    components: {
+        ModalGlobal
+    },
     data() {
         return {
             dadosUsuario: {
@@ -125,7 +175,9 @@ export default {
                 jogoAtivo: false,
                 fase: 1,
                 servidores: [],
-                jogadoresConectados: []
+                jogadoresConectados: [],
+                modalVitoria: false,
+                modalNickname: false
             },
             game: {
                 alternarTime: 1,
@@ -133,8 +185,10 @@ export default {
                 movimentacaoOcorrendo: false,
                 modeSettings: {
                     modo: null,
-                    jogadorAtual: false
-                }
+                    jogadorAtual: false,
+                    ultimoJogador: null
+                },
+                jogadorVencedor: null
             },
             matrizTiles: [
                 // Status
@@ -186,6 +240,8 @@ export default {
         cli(outcall, iLinha, iColuna) {
             if (this.game.movimentacaoOcorrendo || (this.game.modeSettings.modo == "online" && !this.game.modeSettings.jogadorAtual)) return
             this.game.movimentacaoOcorrendo = true
+
+            if (!outcall) this.emitirJogada(iLinha, iColuna)
 
             let linha = null
             // Checando onde a peca vai cair
@@ -338,15 +394,16 @@ export default {
                 if (direcoesGanhadoras.length === 0) {
                     setTimeout(() => {
                         if (this.game.ultimaPecaSelecionada !== null) {
-                            const linha = [...this.matrizTiles[this.game.ultimaPecaSelecionada.iLinha]]
-                            linha[this.game.ultimaPecaSelecionada.iColuna].status = 1
-                            linha[this.game.ultimaPecaSelecionada.iColuna].time = this.game.alternarTime
-                            
-                            this.$set(this.matrizTiles, 0, linha)
+                            if (this.game.modeSettings.modo == "online" && !outcall) {} else {
+                                const linha = [...this.matrizTiles[this.game.ultimaPecaSelecionada.iLinha]]
+                                linha[this.game.ultimaPecaSelecionada.iColuna].status = 1
+                                linha[this.game.ultimaPecaSelecionada.iColuna].time = this.game.alternarTime
+                                
+                                this.$set(this.matrizTiles, 0, linha)
+                            }
                         }
                         this.game.movimentacaoOcorrendo = false
 
-                        // EMITIR PARA O SERVIDOR QUE A JOGADA FOI FEITA
                     }, 300)
                 } else {
 
@@ -356,20 +413,22 @@ export default {
                                 this.game.alternarTime === 1 ? 2 : 1,
                                 direcoesGanhadoras
                             )
+                        } else if (this.game.modeSettings.modo == "online") {
+                            this.vitoriaOcorreu(
+                                this.game.modeSettings.ultimoJogador,
+                                direcoesGanhadoras
+                            )
                         }
                     }, 1)
 
-                    // EMITIR PARA O SERVIDOR A JOGADA + O ANUNCIO DA VITORIA
                 }
 
             }, velocidade)
         },
         vitoriaOcorreu(jogador, direcoes) {
             
-            console.log(`Jogador ${jogador}`)
             for(let i = 0; i < direcoes.length; i++) {
                 const direcaoAtual = direcoes[i]
-                console.log(direcaoAtual)
                 
                 if (direcaoAtual.direcao === "h") {
                     const pecas = direcaoAtual.pecas.map(p => p.iColuna)
@@ -435,20 +494,15 @@ export default {
 
                     novaDiv.style.zIndex = "10"
                     novaDiv.style.width = "calc(var(--con4-board_circle_size) * 1.3)"
-                    //novaDiv.style.transformOrigin = "top"
-                    // Lembrar de fazer um cálculo a partir do valor da hipotenusa para definir o valor dos catetos
-                    //novaDiv.style.left = "calc(((var(--con4-board_tr_size) - var(--con4-board_circle_size)) / 2) * -1.5)"
                     novaDiv.style.left = "calc(var(--con4-board_circle_size) * 1.3 / 2 * -1)"
                     novaDiv.style.top = "0"
                     novaDiv.style.transformOrigin = "center top"
-                    //novaDiv.style.top = "calc(((var(--con4-board_tr_size) - var(--con4-board_circle_size)) / 2) * 1.5)"
                     novaDiv.style.borderRadius = "var(--con4-board_circle_size)"
                     novaDiv.style.backgroundColor = "#4986e76e"
                     novaDiv.style.position = "absolute"
 
                     this.$refs[`espaco${Math.min(...pecasLinha) - 1}:${Math.min(...pecasColuna)}`][0].appendChild(novaDiv)
                 } else if (direcaoAtual.direcao === "l") {
-                    // da direita cima => esquerda baixo
                     const pecasLinha = direcaoAtual.pecas.map(p => p.iLinha)
                     const pecasColuna = direcaoAtual.pecas.map(p => p.iColuna)
 
@@ -468,26 +522,23 @@ export default {
                     board_tr_size = eval(trocarCaractere(trocarCaractere(board_tr_size, "vw", ""), "calc", ""))
                     board_tile_size = eval(trocarCaractere(trocarCaractere(board_tile_size, "vw", ""), "calc", ""))
                     
-                    const catetoOposto = qtdPecasVertical * board_tr_size
-                    const catetoAdjacente = qtdPecasHorizontal * board_tile_size
-
-                    const graus = Math.atan(catetoOposto / catetoAdjacente) * (180 / Math.PI)
+                    const graus = Math.atan(
+                        (qtdPecasHorizontal * board_tile_size)
+                        /
+                        (qtdPecasVertical * board_tr_size)
+                    ) * (180 / Math.PI)
 
                     const novaDiv = document.createElement("div")
                     
-                    novaDiv.style.transform = `rotate(${graus + 15}deg)`
+                    novaDiv.style.transform = `rotate(${graus}deg)`
 
                     novaDiv.style.height = `${(((board_tile_size ** 2) + (board_tr_size ** 2)) ** 0.5) * qtdPecasHorizontal}vw`
 
                     novaDiv.style.zIndex = "10"
                     novaDiv.style.width = "calc(var(--con4-board_circle_size) * 1.3)"
-                    //novaDiv.style.transformOrigin = "top"
-                    // Lembrar de fazer um cálculo a partir do valor da hipotenusa para definir o valor dos catetos
-                    //novaDiv.style.left = "calc(((var(--con4-board_tr_size) - var(--con4-board_circle_size)) / 2) * -1.5)"
-                    novaDiv.style.left = "calc(var(--con4-board_circle_size) * 1.3 / 2 * -1)"
+                    novaDiv.style.left = "calc(var(--con4-board_tile_size) + (var(--con4-board_circle_size) * 1.3 / 2 * -1))"
                     novaDiv.style.top = "0"
                     novaDiv.style.transformOrigin = "center top"
-                    //novaDiv.style.top = "calc(((var(--con4-board_tr_size) - var(--con4-board_circle_size)) / 2) * 1.5)"
                     novaDiv.style.borderRadius = "var(--con4-board_circle_size)"
                     novaDiv.style.backgroundColor = "#4986e76e"
                     novaDiv.style.position = "absolute"
@@ -495,6 +546,9 @@ export default {
                     this.$refs[`espaco${Math.min(...pecasLinha) - 1}:${Math.max(...pecasColuna)}`][0].appendChild(novaDiv)
 
                 }
+
+                this.game.jogadorVencedor = jogador
+                setTimeout(() => { this.interface.modalVitoria = true }, 1000)
             }
         },
         criarServidor() {
@@ -504,14 +558,37 @@ export default {
                 maxPlayers: this.dadosUsuario.maxPlayers
             })
         },
-        async testeFuncionalidade(e) {
-            if (e.keyCode !== 84) return
-
+        async jogarAsync(iLinha, iColuna) {
             if (this.game.ultimaPecaSelecionada !== null) await this.mle(true, 0, this.game.ultimaPecaSelecionada.iColuna)
-            await this.men(true, 2)
-            this.cli(true, 2, 2)
+            await this.men(true, iColuna)
+            this.cli(true, iLinha, iColuna)
         },
-        login() {
+        conectarServidor(serverId) {
+            this.dadosUsuario.serverId = serverId
+            this.socket.emit("con4:SESSION", {
+                tipoReq: "connect",
+                serverId: this.dadosUsuario.serverId,
+                userName: this.dadosUsuario.userName
+            })
+        },
+        iniciarJogo() {
+            this.socket.emit("con4:SESSION", {
+                tipoReq: "start",
+                serverId: this.dadosUsuario.serverId
+            })
+        },
+        selecionarModo(modo) {
+            this.game.modeSettings.modo = modo
+            if (modo == "solo" || modo == "local") {
+                this.interface.jogoAtivo = true
+            } else if (modo == "online") {
+                this.interface.modalNickname = true
+            }
+        },
+        retornar() {
+            window.location.reload()
+        },
+        aceitarNickname() {
             axios.get("/con4/serverlist")
             .then(res => {
                 this.interface.servidores = res.data
@@ -537,6 +614,7 @@ export default {
             this.socket.on("con4:SESSION_RES", res => {
                 switch (res.tipoReq) {
                     case "connect":
+                        console.log(res)
                         this.interface.jogadoresConectados = res.info
                         break
                     case "start":
@@ -545,31 +623,34 @@ export default {
                             this.game.modeSettings.jogadorAtual = true
                         }
                         break
+                    case "round":
+                        this.game.modeSettings.ultimoJogador = res.nomeResponsavel
+
+                        this.game.modeSettings.jogadorAtual = res.proximo.userId == this.dadosUsuario.userId
+                        
+                        if (res.responsavel == this.dadosUsuario.userId) return
+                        
+
+                        this.jogarAsync(res.pos.iLinha, res.pos.iColuna)
+
+                        break
                 }
             })
-            this.interface.fase = 4
+
+            this.interface.modalNickname = false
+            this.interface.fase = 3
         },
-        conectarServidor(serverId) {
-            this.dadosUsuario.serverId = serverId
+        emitirJogada(iLinha, iColuna) {
+            this.game.modeSettings.jogadorAtual = false
             this.socket.emit("con4:SESSION", {
-                tipoReq: "connect",
+                tipoReq: "round",
                 serverId: this.dadosUsuario.serverId,
-                userName: this.dadosUsuario.userName
+                userName: this.dadosUsuario.userName,
+                pos: {
+                    iLinha,
+                    iColuna
+                }
             })
-        },
-        iniciarJogo() {
-            this.socket.emit("con4:SESSION", {
-                tipoReq: "start",
-                serverId: this.dadosUsuario.serverId
-            })
-        },
-        selecionarModo(modo) {
-            this.game.modeSettings.modo = modo
-            if (modo == "solo" || modo == "local") {
-                this.interface.jogoAtivo = true
-            } else if (modo == "online") {
-                this.interface.fase = 3
-            }
         }
     },
     computed: {
@@ -583,9 +664,6 @@ export default {
     watch: {},
     mounted() {
         this.dadosUsuario.userId = this.socket.io.engine.id
-    },
-    created() {
-        window.addEventListener("keydown", this.testeFuncionalidade)
     }
 }
 </script>
@@ -624,6 +702,13 @@ export default {
     font-family: "Arial Black";
     text-align: center;
 }
+
+@media (max-width: 600px) {
+    .landing-title {
+        width: 100%;
+        font-size: 40px;
+    }
+}
 .landing-main {
     width: 100%;
     height: 60%;
@@ -642,10 +727,13 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: normal 40px;
+    flex-wrap: wrap;
 }
 .landing-main-button-placeholder {
     width: 20%;
-    height: 100%;
+    min-width: 200px;
+    height: 80%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -687,10 +775,20 @@ export default {
     background-image: url("../assets/con4/img/online.png");
 }
 
+.serverlist-searchbar {
+    width: 800px;
+    height: 50px;
+    padding: 0;
+    border: 1px solid rgb(185, 185, 185);
+    margin: 0;
+    font-size: 20px;
+    text-indent: 10px;
+}
 .serverlist {
-    width: 500px;
-    height: 500px;
+    width: 800px;
+    height: 400px;
     overflow-y: scroll;
+    border: 1px solid rgb(185, 185, 185);
 }
 
 .serverlist-enter-active,

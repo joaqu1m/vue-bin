@@ -19,7 +19,7 @@ app.use("/con4", routes.fisherman)
 
 const io = require("socket.io")(app.listen(3001), {
     cors: {
-        origin: "http://localhost:3000",
+        origin: "http://10.18.6.155:3000",
         methods: "*"
     }
 })

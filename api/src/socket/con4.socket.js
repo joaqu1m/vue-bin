@@ -32,6 +32,22 @@ module.exports = (io, socket, userId) => {
             case "start":
                 const serv = controller.procurarPorServerId(svId)
                 io.to(svId).emit("con4:SESSION_RES", { tipoReq: "start", info: serv[Math.floor(Math.random() * serv.length)].id })
+                break
+            case "round":
+                let server = controller.procurarPorServerId(svId)
+                server = server.filter(p => p.id !== userId)
+                const userEscolhido = server[Math.floor(Math.random() * server.length)]
+                io.to(svId).emit("con4:SESSION_RES", {
+                    tipoReq: "round",
+                    responsavel: userId,
+                    nomeResponsavel: payload.userName,
+                    pos: payload.pos,
+                    proximo: {
+                        userId: userEscolhido.id,
+                        userName: userEscolhido.name
+                    }
+                })
+                break
         }
     })
 }
