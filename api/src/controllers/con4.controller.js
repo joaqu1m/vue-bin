@@ -35,13 +35,33 @@ const getServerlist = () => {
                 serverName: sv.server.name,
                 playerCount: sv.players.length,
                 playerMax: sv.server.max,
-                dateCreated: sv.server.dateCreated
+                dateCreated: sv.server.dateCreated,
+                hasPassword: sv.server.password != ""
             })
         }
     }
     return {
         statusCode: 200,
         send: avaliableSvList
+    }
+}
+
+const getServerByUserId = (userId) => {
+    for (let i = 0; i < localDB.serverList.length; i++) {
+        const sv = localDB.serverList[i]
+        for (let j = 0; j < sv.players.length; j++) {
+            const player = sv.players[j]
+            if (player.id == userId) {
+                return {
+                    serverId: sv.server.id,
+                    serverName: sv.server.name,
+                    playerCount: sv.players.length,
+                    playerMax: sv.server.max,
+                    dateCreated: sv.server.dateCreated,
+                    hasPassword: sv.server.password != ""
+                }
+            }
+        }
     }
 }
 
@@ -55,7 +75,7 @@ const checkServerAvaliability = (serverId, validarZero) => {
     return false
 }
 
-const createServer = (serverName, maxPlayers) => {
+const createServer = (serverName, maxPlayers, password) => {
     
     serverIdCount++
 
@@ -64,7 +84,8 @@ const createServer = (serverName, maxPlayers) => {
             id: serverIdCount,
             name: serverName,
             max: maxPlayers,
-            dateCreated: new Date()
+            dateCreated: new Date(),
+            password
         },
         players: []
     }
@@ -119,6 +140,16 @@ const procurarPorServerId = (serverId) => {
     return server[0].players
 }
 
+const serverExists = (serverId) => {
+    for(let i = 0; i < localDB.serverList.length; i++) {
+        const sv = localDB.serverList[i]
+        if (sv.server.id == serverId) {
+            return true
+        }
+    }
+    return false
+}
+
 module.exports = {
     findAll,
     getServerlist,
@@ -127,5 +158,7 @@ module.exports = {
     joinServer,
     leaveServer,
     checkDeleteableServers,
-    procurarPorServerId
+    procurarPorServerId,
+    serverExists,
+    getServerByUserId
 }

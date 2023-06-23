@@ -1,15 +1,17 @@
 <!--
     IDEIAS RESTANTES
-    modais tela de multiplayer online
-    interface do jogo melhorada
+    senha para entrar em servidor
+    interface do jogo multiplayer melhorada
     convidar por URL no multiplayer online
-    foto para sua bolinha
+    pesquisar por servidores
     animaçao pesquisando servidores
+    desenho do close na landing page
+
+    // vao ficar pra Deus
+    foto para sua bolinha
     vs bot
     opçao de jogar com mais de 2 jogadores
     manual de ligue-4 - videozinho legal feito em css
-
-    desenho do close na landing page - adiada
 -->
 
 <template>
@@ -17,12 +19,7 @@
         <div class="lobby" v-if="!interface.jogoAtivo">
             <template v-if="interface.fase === 1">
                 <div class="landing-title">
-                    <template v-if="lang === 'pt-BR' || lang === 'pt'">
-                        LIGUE-4
-                    </template>
-                    <template v-else>
-                        CONNECT-4
-                    </template>
+                    {{ text[0] }}
                 </div>
                 <div class="landing-main">
                     <div class="landing-main-half"></div>
@@ -35,25 +32,20 @@
             </template>
             <template v-else-if="interface.fase === 2">
                 <div class="landing-title">
-                    <template v-if="lang === 'pt-BR' || lang === 'pt'">
-                        Escolha um modo de jogo
-                    </template>
-                    <template v-else>
-                        Choose a game mode
-                    </template>
+                    {{ text[1] }}
                 </div>
                 <div class="landing-main">
                     <div class="landing-main-only">
                         <div class="landing-main-button-placeholder">
-                            <span class="landing-main-button-text">Solo</span>
+                            <span class="landing-main-button-text">{{ text[10] }}</span>
                             <button @click="selecionarModo('solo')" class="landing-main-button solo"></button>
                         </div>
                         <div class="landing-main-button-placeholder">
-                            <span class="landing-main-button-text">Local</span>
+                            <span class="landing-main-button-text">{{ text[11] }}</span>
                             <button @click="selecionarModo('local')" class="landing-main-button local"></button>
                         </div>
                         <div class="landing-main-button-placeholder">
-                            <span class="landing-main-button-text">Online</span>
+                            <span class="landing-main-button-text">{{ text[12] }}</span>
                             <button @click="selecionarModo('online')" class="landing-main-button online"></button>
                         </div>
                     </div>
@@ -61,21 +53,36 @@
             </template>
             <template v-else-if="interface.fase === 3">
                 <template v-if="interface.jogadoresConectados.length === 0">
-                    <button @click="criarServidor">criar servidor</button>
-                    <h3>serverlist</h3>
-                    <input class="serverlist-searchbar" placeholder="Pesquise por algo">
-                    <transition-group name="serverlist" tag="div" class="serverlist">
-                        <div @click="conectarServidor(servidor.serverId)" class="server" v-for="(servidor, i) in interface.servidores" :key=servidor.serverId>
-                            <span>{{ servidor.serverName }}</span>
-                            <span>{{ servidor.playerCount }}/{{ servidor.playerMax }}</span>
-                        </div>
-                    </transition-group>
+                    <div style="width: 100%; height: 20%; display: flex; align-items: center; justify-content: center;">
+                        <button @click="modalCriarServidor" class="btnCriarServidor">
+                            {{ text[2] }}
+                        </button>
+                    </div>
+                    <div style="width: 100%; height: 80%; display: flex; align-items: center; justify-content: start; flex-direction: column;">
+                        <input class="serverlist-searchbar" :placeholder="text[3]">
+                        <transition-group name="serverlist" tag="div" class="serverlist">
+                            <div @click="conectarServidor(servidor.serverId, servidor.serverName, servidor.hasPassword)" class="server" v-for="(servidor, i) in interface.servidores" :key=servidor.serverId>
+                                <span style="width: calc(100% - 120px); padding-left: 20px;">{{ text[9](servidor.serverName) }}</span>
+                                <span style="width: 60px; display: flex; justify-content: center;">{{ servidor.playerCount }}/{{ servidor.playerMax }}</span>
+                                <div style="width: 60px; display: flex; justify-content: center; align-items: center;">
+                                    <img :src="servidor.hasPassword ? closepadlock : openpadlock" style="width: 40%;">
+                                </div>
+                            </div>
+                        </transition-group>
+                    </div>
                 </template>
                 <template v-else>
-                    <div>
-                        <h3>servidor conectado</h3>
-                        <span>{{ interface.jogadoresConectados }}</span>
-                        <button @click="iniciarJogo">Iniciar jogo</button>
+                    <div style="display: flex; align-items: center; flex-direction: column; justify-content: center;">
+                        <h3>{{ text[9](dadosUsuario.serverName) }}</h3>
+                        <div class="listaPlayers">
+                            <p>{{ text[17] }}</p>
+                                <div v-for="jogador in interface.jogadoresConectados" :key="jogador.id">
+                                    {{ jogador.name }}
+                                </div>
+                        </div>
+                        <button @click="iniciarJogo" :class="interface.jogadoresConectados.length <= 1 ? 'btnIniciarJogoOff' : 'btnIniciarJogoOn'">
+                            {{ text[16] }}
+                        </button>
                     </div>
                 </template>
             </template>
@@ -100,8 +107,8 @@
         </div>
         <ModalGlobal efeito="canhao" animacao="modal" :modalAberto="interface.modalVitoria" width="70vh">
             <div style="width: 100%; height: 21vh; display: flex; justify-content: center; align-items: center;">
-                <h1 style="text-align: center;" :style="{ color: game.jogadorVencedor == 1 ? '#e43e2b' : '#ffe932' }">
-                    Vitória do jogador {{ game.jogadorVencedor }}
+                <h1 style="text-align: center;" :style="{ color: game.modeSettings.modo == 'online' ? 'black' : game.jogadorVencedor == 1 ? '#e43e2b' : '#ffe932' }">
+                    {{ text[13](game.jogadorVencedor) }}
                 </h1>
             </div>
             <div style="width: 75%; height: 28vh;" v-if="false"></div>
@@ -114,7 +121,7 @@
                 background-color: #003386;
                 color: white;
                 border: 1px gray solid;
-                " @click="retornar">Retornar ao início</button>
+                " @click="retornar">{{ text[14] }}</button>
             </div>
         </ModalGlobal>
         <ModalGlobal animacao="modal" :modalAberto="interface.modalNickname" width="70vh">
@@ -125,11 +132,10 @@
             align-items: center;
             justify-content: center;
             ">
-                <h2 v-if="lang === 'pt-BR' || lang === 'pt'">Escolha um nickname para continuar</h2>
-                <h2 v-else>Type a nickname to continue</h2>
+                <h2>{{ text[4] }}</h2>
             </div>
             <div style="width: 100%; height: 28vh; display: flex; align-items: center; justify-content: space-evenly; flex-direction: column;">
-                <input type="text" style="width: 250px; height: 30px; border-radius: 5px; border: 1px solid rgb(185, 185, 185); padding: 5px;" placeholder="Nickname" @keydown.enter="aceitarNickname" v-model="dadosUsuario.userName">
+                <input type="text" style="width: 250px; height: 30px; border-radius: 5px; border: 1px solid rgb(185, 185, 185); padding: 5px;" :placeholder="text[15]" @keydown.enter="aceitarNickname" v-model="dadosUsuario.userName">
                 <button style="
                 width: 200px;
                 height: 30px;
@@ -140,12 +146,34 @@
                 font-weight: bold;
                 border: 1px gray solid;
                 " @click="aceitarNickname">
-                <template v-if="lang === 'pt-BR' || lang === 'pt'">
-                    Avançar
-                </template>
-                <template v-else>
-                    Continue
-                </template>
+                {{ text[5] }}
+            </button>
+            </div>
+        </ModalGlobal>
+        <ModalGlobal animacao="modal" :modalAberto="interface.modalCriarServidor" width="70vh">
+            <div style="
+            width: 100%;
+            height: 14vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            ">
+                <h2>{{ text[6] }}</h2>
+            </div>
+            <div style="width: 100%; height: 28vh; display: flex; align-items: center; justify-content: space-evenly; flex-direction: column;">
+                <input type="text" style="width: 250px; height: 30px; border-radius: 5px; border: 1px solid rgb(185, 185, 185); padding: 5px;" :placeholder="text[7]" @keydown.enter="criarServidor" v-model="dadosUsuario.serverPassword">
+                <button style="
+                width: 180px;
+                height: 40px;
+                font-size: 20px;
+                cursor: pointer;
+                border-radius: 5px;
+                background-color: #003386;
+                color: white;
+                font-weight: bold;
+                border: 1px gray solid;
+                " @click="criarServidor">
+                    {{ text[8] }}
             </button>
             </div>
         </ModalGlobal>
@@ -155,6 +183,9 @@
 <script>
 import axios from "../api/AxiosConfig"
 import ModalGlobal from "../components/ModalGlobal.vue"
+import langs from "../components/content/con4.content"
+import openpadlock from "../assets/con4/img/open_padlock.png"
+import closepadlock from "../assets/con4/img/close_padlock.png"
 
 export default {
     name: "Con4",
@@ -168,6 +199,7 @@ export default {
                 userName: "",
                 serverId: null,
                 serverName: null,
+                serverPassword: "",
                 playerCount: null,
                 maxPlayers: 2
             },
@@ -177,7 +209,8 @@ export default {
                 servidores: [],
                 jogadoresConectados: [],
                 modalVitoria: false,
-                modalNickname: false
+                modalNickname: false,
+                modalCriarServidor: false
             },
             game: {
                 alternarTime: 1,
@@ -548,23 +581,30 @@ export default {
                 }
 
                 this.game.jogadorVencedor = jogador
+
+                this.socket.emit("con4:SESSION", { tipoReq: "end" })
                 setTimeout(() => { this.interface.modalVitoria = true }, 1000)
             }
         },
+        modalCriarServidor() {
+            this.interface.modalCriarServidor = true
+        },
         criarServidor() {
-            this.dadosUsuario.serverName = "Servidor de " + this.dadosUsuario.userName
             this.socket.emit("con4:CREATE_SERVER", {
-                serverName: this.dadosUsuario.serverName,
-                maxPlayers: this.dadosUsuario.maxPlayers
+                serverName: this.dadosUsuario.userName,
+                maxPlayers: this.dadosUsuario.maxPlayers,
+                password: this.dadosUsuario.serverPassword
             })
+            this.interface.modalCriarServidor = false
         },
         async jogarAsync(iLinha, iColuna) {
             if (this.game.ultimaPecaSelecionada !== null) await this.mle(true, 0, this.game.ultimaPecaSelecionada.iColuna)
             await this.men(true, iColuna)
             this.cli(true, iLinha, iColuna)
         },
-        conectarServidor(serverId) {
+        conectarServidor(serverId, serverName) {
             this.dadosUsuario.serverId = serverId
+            this.dadosUsuario.serverName = serverName
             this.socket.emit("con4:SESSION", {
                 tipoReq: "connect",
                 serverId: this.dadosUsuario.serverId,
@@ -572,6 +612,7 @@ export default {
             })
         },
         iniciarJogo() {
+            if (this.interface.jogadoresConectados <= 1) return
             this.socket.emit("con4:SESSION", {
                 tipoReq: "start",
                 serverId: this.dadosUsuario.serverId
@@ -586,20 +627,23 @@ export default {
             }
         },
         retornar() {
-            window.location.reload()
+            this.resetMultiplayerSettings()
+            this.interface.modalVitoria = false
         },
         aceitarNickname() {
             axios.get("/con4/serverlist")
             .then(res => {
                 this.interface.servidores = res.data
+                this.interface.servidores.sort((a, b) => {a.dateCreated - b.dateCreated})
             })
             .catch(console.log)
 
             this.socket.on("con4:SERVER_CREATED", res => {
                 if (res.userId === this.dadosUsuario.userId) {
-                    this.conectarServidor(res.serverId)
+                    this.conectarServidor(res.serverId, res.serverName)
                 }
                 this.interface.servidores.push(res)
+                this.interface.servidores.sort((a, b) => {a.dateCreated - b.dateCreated})
             })
             this.socket.on("con4:SERVER_DELETED", res => {
                 for(let i = this.interface.servidores.length-1; i >= 0; i--) {
@@ -614,8 +658,15 @@ export default {
             this.socket.on("con4:SESSION_RES", res => {
                 switch (res.tipoReq) {
                     case "connect":
-                        console.log(res)
                         this.interface.jogadoresConectados = res.info
+                        break
+                    // case "disconnect":
+                    //     console.log(res)
+                    //     break
+                    case "unavailable":
+
+                        this.resetMultiplayerSettings()
+
                         break
                     case "start":
                         this.interface.jogoAtivo = true
@@ -651,15 +702,41 @@ export default {
                     iColuna
                 }
             })
+        },
+        resetMultiplayerSettings() {
+            this.interface.jogadoresConectados = []
+            this.interface.jogoAtivo = false
+            this.dadosUsuario.serverId = null
+            this.dadosUsuario.serverName = null
+            this.dadosUsuario.maxPlayers = 2
+            this.dadosUsuario.playerCount = null
+            this.dadosUsuario.serverPassword = ""
+            this.interface.alternarTime = 1
+            this.game.ultimaPecaSelecionada = null
+            this.game.movimentacaoOcorrendo = false
+            this.game.modeSettings.jogadorAtual = false
+            this.game.modeSettings.ultimoJogador = null
+            this.game.jogadorVencedor = null
+            this.matrizTiles = [
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }],
+                [{ status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }, { status: null, time: null }]
+            ]
         }
     },
     computed: {
         socket() {
             return this.$store.state.socket
         },
-        lang() {
-            return navigator.language || navigator.userLanguage
-        }
+        text() {
+            return langs(navigator.language || navigator.userLanguage)
+        },
+        openpadlock: () => openpadlock,
+        closepadlock: () => closepadlock,
     },
     watch: {},
     mounted() {
@@ -775,8 +852,20 @@ export default {
     background-image: url("../assets/con4/img/online.png");
 }
 
+.btnCriarServidor {
+    background-color: #003386;
+    border: 0;
+    border-radius: 10px;
+    width: 200px;
+    height: 50px;
+    color: rgb(255, 255, 255);
+    font-size: 20px;
+    text-align: center;
+    cursor: pointer;
+}
+
 .serverlist-searchbar {
-    width: 800px;
+    width: 80%;
     height: 50px;
     padding: 0;
     border: 1px solid rgb(185, 185, 185);
@@ -785,10 +874,29 @@ export default {
     text-indent: 10px;
 }
 .serverlist {
-    width: 800px;
-    height: 400px;
+    width: 80%;
+    height: 80%;
     overflow-y: scroll;
     border: 1px solid rgb(185, 185, 185);
+    gap: 1px;
+}
+@media (max-width: 600px) {
+    .serverlist-searchbar {
+        width: calc(100% - 2px);
+    }
+    .serverlist {
+        width: calc(100% - 2px);
+        height: 100%;
+    }
+}
+@media (min-width: 1100px) {
+    .serverlist-searchbar {
+        width: 60%;
+    }
+    .serverlist {
+        width: 60%;
+    }
+
 }
 
 .serverlist-enter-active,
@@ -814,9 +922,39 @@ export default {
     border-radius: 10px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 20px;
     cursor: pointer;
+}
+
+.btnIniciarJogoOn {
+    background-color: #003386;
+    border: 0;
+    border-radius: 10px;
+    width: 150px;
+    height: 40px;
+    color: rgb(255, 255, 255);
+    font-size: 20px;
+    text-align: center;
+    cursor: pointer;
+    margin: 1em;
+}
+
+.btnIniciarJogoOff {
+    background-color: #3a3a3a;
+    border: 0;
+    border-radius: 10px;
+    width: 150px;
+    height: 40px;
+    color: rgb(255, 255, 255);
+    font-size: 20px;
+    text-align: center;
+    margin: 1em;
+}
+
+.listaPlayers {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 30px;
 }
 
 
