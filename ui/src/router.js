@@ -21,5 +21,9 @@ export default new VueRouter({
         path: "/globe",
         name: "globe",
         component: () => import("./views/Globe.vue")
+    }, {
+        path: "/daytimeswitch",
+        name: "daytimeswitch",
+        component: () => import("./views/DaytimeSwitch.vue")
     }]
 })

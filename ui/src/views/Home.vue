@@ -39,6 +39,10 @@ export default {
                 name: "globe",
                 path: "/globe",
                 img: "https://cf.shopee.com.br/file/fae4fa366cb6eb98ead3b3a75b68fc58"
+            }, {
+                name: "daytimeSwitch",
+                path: "/daytimeswitch",
+                img: "https://addons.mozilla.org/user-media/previews/full/239/239747.png?modified=1622132681"
             }]
         }
     },
