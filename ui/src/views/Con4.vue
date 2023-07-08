@@ -76,9 +76,9 @@
                         <h3>{{ text[9](dadosUsuario.serverName) }}</h3>
                         <div class="listaPlayers">
                             <p>{{ text[17] }}</p>
-                                <div v-for="jogador in interface.jogadoresConectados" :key="jogador.id">
-                                    {{ jogador.name }}
-                                </div>
+                            <div v-for="jogador in interface.jogadoresConectados" :key="jogador.id">
+                                {{ jogador.name }}
+                            </div>
                         </div>
                         <button @click="iniciarJogo" :class="interface.jogadoresConectados.length <= 1 ? 'btnIniciarJogoOff' : 'btnIniciarJogoOn'">
                             {{ text[16] }}
@@ -612,7 +612,7 @@ export default {
             })
         },
         iniciarJogo() {
-            if (this.interface.jogadoresConectados <= 1) return
+            if (this.interface.jogadoresConectados.length <= 1) return
             this.socket.emit("con4:SESSION", {
                 tipoReq: "start",
                 serverId: this.dadosUsuario.serverId
@@ -627,6 +627,7 @@ export default {
             }
         },
         retornar() {
+            window.location.reload()
             this.resetMultiplayerSettings()
             this.interface.modalVitoria = false
         },
